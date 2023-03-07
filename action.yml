@@ -1,0 +1,113 @@
+name: 'Setup Maven Action'
+description: 'Complete environment configuration for Maven builds'
+
+branding:
+  icon: 'settings'
+  color: 'green'
+
+inputs:
+
+  # checkout
+  checkout-fetch-depth:
+    description: 'Number of commits to fetch'
+    required: false
+
+  checkout-path:
+    description: 'Relative path under $GITHUB_WORKSPACE to place the repository'
+    required: false
+
+  checkout-persist-credentials:
+    description: 'Whether to configure the token or SSH key with the local git config'
+    default: 'false'
+    required: false
+
+
+  # java jdk params
+
+  java-version:
+    description: 'The Java version to set up'
+    required: true
+
+  java-distribution:
+    description: 'Java distribution'
+    default: 'temurin'
+    required: false
+
+  # cache
+  cache-prefix:
+    description: 'Cache key prefix'
+    required: false
+
+  cache-path:
+    description: 'Cache path'
+    default: '~/.m2/repository'
+    required: false
+
+  cache-path-add:
+    description: 'Additional item for cache path'
+    required: false
+
+  # maven version
+  maven-version:
+    description: 'The Maven version to set up'
+    default: '3.9.0'
+    required: false
+
+  # maven settings.xml
+  settings-servers:
+    description: 'servers definition in json array, eg: [{"id": "serverId", "username": "username", "password": "password"}]'
+    required: false
+
+  settings-mirrors:
+    description: 'mirrors definition in json array, eg: [{"id": "id", "name": "name", "mirrorOf": "mirrorOf", "url": "url"}]'
+    required: false
+
+  settings-properties:
+    description: 'json array with properties, eg [{"propertyName1": "propertyValue1"}, {"propertyName2": "propertyValue2"}]'
+    required: false
+
+  settings-sonatypeSnapshots:
+    description: 'add https://oss.sonatype.org/content/repositories/snapshots to repository list - true or false'
+    required: false
+
+runs:
+  using: 'composite'
+
+  steps:
+
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: '${{ inputs.checkout-fetch-depth }}'
+        path: '${{ inputs.checkout-path }}'
+        persist-credentials: '${{ inputs.checkout-persist-credentials }}'
+
+    - uses: actions/setup-java@v3
+      with:
+        overwrite-settings: false
+        java-version: '${{ inputs.java-version }}'
+        distribution: '${{ inputs.java-distribution }}'
+
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ${{ inputs.cache-path }}
+          ${{ inputs.cache-path-add }}
+        key: ${{ inputs.cache-prefix }}${{ runner.os }}-jdk${{ inputs.java-version }}-${{ inputs.java-distribution }}-maven${{ inputs.maven-version }}-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ inputs.cache-prefix }}${{ runner.os }}-jdk${{ inputs.java-version }}-${{ inputs.java-distribution }}-maven${{ inputs.maven-version }}-
+
+    - name: Installed Maven version
+      run:  echo "version=$(mvn -q -v)" >> $GITHUB_OUTPUT
+      shell: bash
+      id: current-maven
+
+    - uses: stCarolas/setup-maven@v4.5
+      if: inputs.maven-version != steps.current-maven.outputs.version
+      with:
+        maven-version: '${{ inputs.maven-version }}'
+
+    - uses: s4u/maven-settings-action@v2.8.0
+      with:
+        servers: '${{ inputs.settings-servers}}'
+        mirrors: '${{ inputs.settings-mirrors}}'
+        properties: '${{ inputs.settings-properties}}'
+        sonatypeSnapshots: '${{ inputs.settings-sonatypeSnapshots}}'
