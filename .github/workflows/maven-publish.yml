@@ -37,15 +37,15 @@ jobs:
       
 
     
-    - name: Add repo credentials
-      uses: s4u/maven-settings-action@v2.4.0
-      with:
-        servers: |
-          [{
-           "id": "mule-enterprise",
-           "username": "${{ secrets.NEXUS_USERNAME }}",
-           "password": "${{ secrets.NEXUS_PASSWORD }}"
-          }]
+    #- name: Add repo credentials
+     # uses: s4u/maven-settings-action@v2.4.0
+     # with:
+     #   servers: |
+      #    [{
+      #     "id": "mule-enterprise",
+      #     "username": "${{ secrets.NEXUS_USERNAME }}",
+      #     "password": "${{ secrets.NEXUS_PASSWORD }}"
+      #    }]
 
     
     - name: Build
